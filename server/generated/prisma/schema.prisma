@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../server/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model bottles {
+  id               Int                @id @default(autoincrement())
+  event_id         Int?
+  name             String             @db.VarChar(100)
+  price            Decimal            @db.Decimal(10, 2)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  events           events?            @relation(fields: [event_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reserved_bottles reserved_bottles[]
+}
+
+model clubs {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(255)
+  address     String?
+  city        String?   @db.VarChar(100)
+  description String?
+  image_url   String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  events      events[]
+}
+
+model events {
+  id          Int       @id @default(autoincrement())
+  club_id     Int?
+  name        String    @db.VarChar(255)
+  description String?
+  event_date  DateTime  @db.Timestamp(6)
+  music_genre String?   @db.VarChar(100)
+  image_url   String?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  bottles     bottles[]
+  clubs       clubs?    @relation(fields: [club_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tables      tables[]
+  tickets     tickets[]
+}
+
+model payments {
+  id             Int           @id @default(autoincrement())
+  reservation_id Int?
+  payment_method String?       @db.VarChar(50)
+  amount         Decimal       @db.Decimal(10, 2)
+  paid_at        DateTime?     @default(now()) @db.Timestamp(6)
+  status         String?       @default("completed") @db.VarChar(50)
+  reservations   reservations? @relation(fields: [reservation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model reservations {
+  id               Int                @id @default(autoincrement())
+  user_id          Int?
+  ticket_id        Int?
+  table_id         Int?
+  quantity         Int?               @default(1)
+  total_price      Decimal?           @db.Decimal(10, 2)
+  status           String?            @default("pending") @db.VarChar(50)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  payments         payments[]
+  tables           tables?            @relation(fields: [table_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tickets          tickets?           @relation(fields: [ticket_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users            users?             @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reserved_bottles reserved_bottles[]
+}
+
+model reserved_bottles {
+  id             Int           @id @default(autoincrement())
+  reservation_id Int?
+  bottle_id      Int?
+  quantity       Int?          @default(1)
+  total_price    Decimal?      @db.Decimal(10, 2)
+  note           String?
+  bottles        bottles?      @relation(fields: [bottle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reservations   reservations? @relation(fields: [reservation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model tables {
+  id                 Int            @id @default(autoincrement())
+  event_id           Int?
+  name               String?        @db.VarChar(100)
+  price              Decimal        @db.Decimal(10, 2)
+  capacity           Int?
+  available_quantity Int?
+  created_at         DateTime?      @default(now()) @db.Timestamp(6)
+  reservations       reservations[]
+  events             events?        @relation(fields: [event_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model tickets {
+  id                 Int            @id @default(autoincrement())
+  event_id           Int?
+  name               String?        @db.VarChar(100)
+  price              Decimal        @db.Decimal(10, 2)
+  available_quantity Int?
+  created_at         DateTime?      @default(now()) @db.Timestamp(6)
+  reservations       reservations[]
+  events             events?        @relation(fields: [event_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model users {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique @db.VarChar(255)
+  password_hash String
+  full_name     String?        @db.VarChar(255)
+  phone_number  String?        @db.VarChar(20)
+  created_at    DateTime?      @default(now()) @db.Timestamp(6)
+  reservations  reservations[]
+}
