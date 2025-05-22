@@ -1,33 +1,15 @@
 "use client"
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
+
 import { toast, Toaster } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, MapPin, Clock } from "lucide-react";
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { NextResponse } from "next/server";
+import { DynamicForm, FieldType } from "@/components/ui/dynamicForm";
+import { ReusableDialog } from "@/components/ui/reusableDialog";
 
-const formSchema = z.object({
+
+
+const formSchemaRegistrazione = z.object({
   full_name: z.string().min(3, 
     {
       message: "Il nome deve contenere almeno 8 caratteri",
@@ -47,44 +29,38 @@ const formSchema = z.object({
   phone_number: z.string().length(10, {message: "Il numero di telefono deve avere 10 numeri"}),
 })
 
-  // 1. Define your form.
+const formSchemaLogin = z.object({
+  email: z.string().email({message: "Email non valida"}),
+  password_hash: z.string().min(8, 
+    {
+      message: "La password deve contenere almeno 8 caratteri"
+    })
+  .max(50, 
+    {
+      message: "La password non può superare i 50 caratteri"
+    }),
+
+})
+
+const fields: FieldType[] = [
+    { name: "email", label: "Email", placeholder: "Inserisci la tua email", type: "email" },
+    { name: "full_name", label: "Nome completo", placeholder: "Mario Rossi" },
+    { name: "password_hash", label: "Password", placeholder: "●●●●●", type: "password" },
+    { name: "phone_number", label: "Numero di telefono", placeholder: "331..." },
+  ];
+
+  const fieldsLogin: FieldType[] = [
+    { name: "email", label: "Email", placeholder: "Inserisci la tua email", type: "email" },
+    { name: "password_hash", label: "Password", placeholder: "●●●●●", type: "password" },
+  ];
   
 
 
 export default function HomePage() {
-  const [open, setOpen] =  useState(false);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      full_name: "",
-      email: "",
-      password_hash: "",
-      phone_number: "",
-    },
-  })
+  
 
   // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const promise = fetch("/server/api/v1/auth/register", {method: "POST", body: JSON.stringify(values)})
-    .then(async (res)=>{
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Errore generico");
-      return data;
-    })
-    .catch((err)=>{
-      throw new Error("Errore: " + err.message);
-    })
-    toast.promise(promise, {
-    loading: "Caricamento in corso...",
-    success: () => {
-      return {
-        message: `Ciao ${values.full_name} benvenuto in Nightbles🎇`,
-      };
-    },
-    error: "errore"
-    });
-  }
+  
   return (
     <main className="bg-[#0A0025] min-h-screen text-white px-4 md:px-20 py-10">
       <Toaster position="top-center"></Toaster>
@@ -103,83 +79,22 @@ export default function HomePage() {
           <Button className="text-black bg-white text-lg px-6 py-2 rounded-2xl hover:bg-gray-200">
             Scarica l'app
           </Button>*/}
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger className="bg-[#7C0CC1] hover:bg-[#6601a4] text-white text-lg px-6 py-2 rounded-2xl">
-              Registrati
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Inserisci i tuoi dati</DialogTitle>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="email" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="full_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nome completo</FormLabel>
-                          <FormControl>
-                            <Input placeholder="nome" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="password_hash"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="phone_number"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Num. di telefono</FormLabel>
-                          <FormControl>
-                            <Input type="tel" placeholder="numero di telefono" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" onClick={()=> setOpen(false)}>Registrati</Button>
-                  </form>
-                </Form>
-              </DialogHeader>
-            </DialogContent>
-          </Dialog>
-          <Dialog >
-            <DialogTrigger className="text-black bg-white text-lg px-6 py-2 rounded-2xl hover:bg-gray-200">
-              Login
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Inserisci i tuoi dati</DialogTitle>
-              </DialogHeader>
-            </DialogContent>
-          </Dialog>
+          <ReusableDialog 
+            style="bg-[#7C0CC1] hover:bg-[#6601a4] text-white text-lg px-6 py-2 rounded-2xl"
+            triggerLabel="Registrati"
+            title="Inserisci i tuoi dati"
+          >
+            <DynamicForm fields={fields} schema={formSchemaRegistrazione} message="benvenuto in Nightbles 🎇" api="/server/api/v1/auth/register"></DynamicForm>
+
+          </ReusableDialog>
+          <ReusableDialog 
+            style="text-black bg-white text-lg px-6 py-2 rounded-2xl hover:bg-gray-200"
+            triggerLabel="Login"
+            title="Inserisci i tuoi dati"
+          >
+            <DynamicForm fields={fieldsLogin} schema={formSchemaLogin} message="bentornato! Ti stavamo aspettando 🤩" api="/server/api/v1/auth/login"></DynamicForm>
+
+          </ReusableDialog>
 
         </div>
       </section>
